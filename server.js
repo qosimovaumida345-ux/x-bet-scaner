@@ -39,7 +39,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 const CONFIG = {
     PORT: process.env.PORT || 3000,
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || '',
-    MODEL: 'anthropic/claude-sonnet-4-5',
+    // Bu model 100% bepul
+    MODEL: process.env.MODEL || 'meta-llama/llama-3.1-8b-instruct:free',
     SITE_URL: process.env.SITE_URL || 'https://x-bet-scaner.onrender.com',
     SITE_NAME: 'X-Intel Intelligence System'
 };
