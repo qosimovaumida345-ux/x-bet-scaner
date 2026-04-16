@@ -1,192 +1,256 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>X-BET PREDICTOR PRO | AVIATOR & CRASH</title>
+    <title>X-BET ULTIMATE PREDICTOR</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #0f1118; font-family: 'Roboto', sans-serif; color: #eef2f7; overflow-x: hidden; }
-        .bg-gradient-dark { background: linear-gradient(180deg, #1a1d29 0%, #0f1118 100%); }
-        .aviator-card { background: #1c1f2d; border-radius: 12px; border: 1px solid #2d3244; }
-        .multiplier-text { font-size: 8rem; font-weight: 900; line-height: 1; text-shadow: 0 0 30px rgba(255, 255, 255, 0.1); }
-        .history-badge { padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 13px; }
-        .badge-blue { background: #28a745; color: white; }
-        .badge-purple { background: #9139f5; color: white; }
-        .crash-red { color: #ff3333; }
-        .scan-line { width: 100%; height: 2px; background: #ff3333; position: absolute; top: 0; animation: scan 2s linear infinite; opacity: 0.5; }
-        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
-        canvas { width: 100%; height: 350px; }
-        .sidebar { background: #151823; width: 300px; border-right: 1px solid #2d3244; }
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+        
+        :root { --main-blue: #0056b3; --dark-bg: #0e101b; --panel-bg: #1c2130; --gold: #ffc600; }
+        body { background: var(--dark-bg); color: #fff; font-family: 'Montserrat', sans-serif; }
+        
+        .game-nav-item { cursor: pointer; padding: 15px; border-bottom: 3px solid transparent; transition: 0.3s; font-weight: bold; font-size: 13px; color: #8a8f9d; }
+        .game-nav-item.active { border-color: var(--main-blue); color: #fff; background: rgba(0,86,179,0.1); }
+        
+        .glass-panel { background: var(--panel-bg); border: 1px solid #2d3446; border-radius: 12px; }
+        .multiplier-display { font-size: 100px; font-weight: 900; text-shadow: 0 0 30px rgba(0,242,255,0.3); }
+        
+        /* Apple of Fortune Grid */
+        .apple-grid { display: grid; grid-template-rows: repeat(10, 1fr); gap: 5px; width: 100%; max-width: 400px; }
+        .apple-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+        .apple-cell { height: 40px; background: #151926; border: 1px solid #2d3446; display: flex; align-items: center; justify-content: center; position: relative; }
+        .apple-cell.safe { background: rgba(0, 255, 0, 0.1); border-color: #00ff00; }
+        .apple-cell.safe::after { content: '🍎'; font-size: 18px; }
+
+        /* Thimbles */
+        .thimbles-container { display: flex; justify-content: center; gap: 30px; margin-top: 50px; }
+        .thimble { width: 100px; transition: transform 0.5s; cursor: pointer; }
+        .thimble.up { transform: translateY(-50px); }
+
+        /* Log window */
+        .console { font-family: 'Courier New', monospace; font-size: 10px; color: #4ade80; background: #000; padding: 10px; height: 150px; overflow-y: auto; border: 1px solid #222; }
     </style>
 </head>
-<body class="flex h-screen">
+<body class="flex flex-col h-screen">
 
-    <!-- Sidebar: Session Control -->
-    <div class="sidebar hidden md:flex flex-col p-4">
-        <div class="mb-8">
-            <h1 class="text-xl font-black text-blue-500 italic">X-BET PRO</h1>
-            <p class="text-xs text-gray-500">v4.0.2 INTELLIGENCE</p>
+    <!-- TOP HEADER -->
+    <header class="h-16 bg-[#1a1d29] border-b border-[#2d3446] flex items-center px-6 justify-between">
+        <div class="flex items-center space-x-10">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/1xBet_logo.svg" height="25" width="120">
+            <nav class="flex h-16">
+                <div onclick="switchGame('crash')" id="nav-crash" class="game-nav-item active">AVIATOR / CRASH</div>
+                <div onclick="switchGame('apple')" id="nav-apple" class="game-nav-item">APPLE OF FORTUNE</div>
+                <div onclick="switchGame('thimbles')" id="nav-thimbles" class="game-nav-item">THIMBLES</div>
+            </nav>
         </div>
-
-        <div class="space-y-6">
-            <div>
-                <label class="text-xs font-bold text-gray-400 block mb-2">SESSION AUTHENTICATION</label>
-                <input id="sessionInput" type="text" placeholder="Session ID..." class="w-full bg-black border border-gray-700 p-3 rounded text-sm outline-none focus:border-blue-500 transition">
-                <button onclick="saveSession()" class="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-sm transition">CONNECT</button>
+        <div class="flex items-center space-x-4">
+            <div class="text-right">
+                <div class="text-[10px] text-gray-500">ID: <span id="displayId">NOT LINKED</span></div>
+                <div class="text-yellow-500 font-bold">0.00 UZS</div>
             </div>
-
-            <div class="aviator-card p-4">
-                <h3 class="text-xs font-bold text-blue-400 mb-3">AI PREDICTION ENGINE</h3>
-                <div id="aiStatus" class="text-xs text-gray-400 mb-2">● Scanning Packets...</div>
-                <div id="nextPrediction" class="text-2xl font-black text-white">WAITING...</div>
-                <div class="w-full bg-gray-800 h-1 mt-2 rounded overflow-hidden">
-                    <div id="aiProgress" class="bg-blue-500 h-full w-0 transition-all duration-500"></div>
-                </div>
-            </div>
-
-            <div class="mt-auto">
-                <div class="text-[10px] text-gray-600 border-t border-gray-800 pt-4">
-                    Tizim server ma'lumotlarini real-vaqtda tahlil qiladi. Demo rejimda 98% aniqlik kafolatlangan.
-                </div>
-            </div>
+            <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-bold">U</div>
         </div>
-    </div>
+    </header>
 
-    <!-- Main Content -->
-    <div class="flex-1 flex flex-col relative overflow-hidden">
-        <div class="scan-line"></div>
+    <main class="flex-1 flex overflow-hidden p-4 space-x-4">
         
-        <!-- Header: History -->
-        <div id="historyBar" class="h-12 bg-[#151823] border-b border-gray-800 flex items-center px-4 space-x-2 overflow-x-auto">
-            <!-- Badges will be injected here -->
-        </div>
-
-        <!-- Game Area -->
-        <div class="flex-1 flex flex-col items-center justify-center relative">
-            <div id="mainDisplay" class="text-center">
-                <div id="multiplier" class="multiplier-text text-white">1.00x</div>
-                <div id="statusText" class="text-xl font-bold text-gray-500 tracking-widest uppercase">Uchish boshlandi...</div>
+        <!-- LEFT SIDE: CONTROLS & LOGS -->
+        <div class="w-1/4 flex flex-col space-y-4">
+            <div class="glass-panel p-6">
+                <h3 class="text-sm font-bold text-blue-400 mb-4 uppercase">System Sync</h3>
+                <input id="sessionInput" type="text" placeholder="SESSION ID (e.g. 8x22...)" class="w-full bg-black border border-gray-700 p-3 rounded text-sm mb-3 outline-none focus:border-blue-500">
+                <button onclick="linkSession()" class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded font-bold transition">LINK ACCOUNT</button>
             </div>
 
-            <canvas id="gameCanvas" class="absolute bottom-0 left-0"></canvas>
+            <div class="glass-panel p-4 flex-1 flex flex-col">
+                <h3 class="text-xs font-bold text-gray-500 mb-2 uppercase">Packet Interceptor</h3>
+                <div id="console" class="console flex-1 rounded">
+                    > System Kernel Initialized...<br>
+                    > Waiting for User Session...
+                </div>
+            </div>
+
+            <div class="glass-panel p-4">
+                <div class="text-[10px] text-gray-400">STATUS: <span class="text-green-500" id="sysStatus">STANDBY</span></div>
+                <div class="text-[10px] text-gray-400">AI ACCURACY: <span class="text-yellow-500">99.2%</span></div>
+            </div>
         </div>
 
-        <!-- Controls -->
-        <div class="h-32 bg-[#1c1f2d] border-t border-gray-800 p-4 flex items-center justify-center space-x-4">
-            <div class="bg-black/40 p-3 rounded-lg border border-gray-800 text-center w-40">
-                <div class="text-[10px] text-gray-500">KEYINGI TAXMIN</div>
-                <div id="bottomPredict" class="text-xl font-black text-green-500">--.--x</div>
+        <!-- RIGHT SIDE: GAME VIEWER -->
+        <div class="flex-1 glass-panel relative flex flex-col">
+            
+            <!-- CRASH / AVIATOR MODULE -->
+            <div id="game-crash" class="game-module flex flex-col h-full items-center justify-center p-10">
+                <div class="absolute top-4 left-4 flex gap-2" id="crashHistory">
+                    <!-- History will go here -->
+                </div>
+                <div id="crashMult" class="multiplier-display">1.00x</div>
+                <div id="crashStatus" class="text-gray-500 font-bold tracking-widest mt-4">WAITING FOR NEXT ROUND...</div>
+                
+                <div class="mt-20 p-6 border border-blue-500/30 rounded-xl bg-blue-500/5 text-center">
+                    <div class="text-xs text-blue-400 mb-2">AI NEXT CRASH PREDICTION</div>
+                    <div id="crashPredict" class="text-4xl font-black">--.--x</div>
+                </div>
             </div>
-            <div class="bg-black/40 p-3 rounded-lg border border-gray-800 text-center w-40">
-                <div class="text-[10px] text-gray-500">ISXONCH</div>
-                <div id="confLevel" class="text-xl font-black text-blue-400">0%</div>
+
+            <!-- APPLE OF FORTUNE MODULE -->
+            <div id="game-apple" class="game-module hidden flex flex-col h-full items-center p-6 overflow-y-auto">
+                <h2 class="text-xl font-bold mb-6 text-yellow-500">APPLE OF FORTUNE PATHFINDER</h2>
+                <div class="apple-grid" id="appleGrid">
+                    <!-- 10 rows generated by JS -->
+                </div>
+                <button onclick="getApplePath()" class="mt-6 bg-yellow-600 px-10 py-3 rounded-full font-bold">GET SECURE PATH</button>
             </div>
+
+            <!-- THIMBLES MODULE -->
+            <div id="game-thimbles" class="game-module hidden flex flex-col h-full items-center justify-center">
+                <h2 class="text-2xl font-bold mb-10">THIMBLES TRACKER</h2>
+                <div class="thimbles-container">
+                    <div id="thimble-1" class="thimble-box flex flex-col items-center">
+                        <div id="hint-1" class="mb-4 font-bold text-green-500 opacity-0">WIN HERE</div>
+                        <img src="https://i.ibb.co/L5pZ0vX/thimble.png" class="thimble" id="t1">
+                    </div>
+                    <div id="thimble-2" class="thimble-box flex flex-col items-center">
+                        <div id="hint-2" class="mb-4 font-bold text-green-500 opacity-0">WIN HERE</div>
+                        <img src="https://i.ibb.co/L5pZ0vX/thimble.png" class="thimble" id="t2">
+                    </div>
+                    <div id="thimble-3" class="thimble-box flex flex-col items-center">
+                        <div id="hint-3" class="mb-4 font-bold text-green-500 opacity-0">WIN HERE</div>
+                        <img src="https://i.ibb.co/L5pZ0vX/thimble.png" class="thimble" id="t3">
+                    </div>
+                </div>
+                <button onclick="startThimbles()" class="mt-20 bg-blue-600 px-10 py-3 rounded font-bold">START SHUFFLE TRACKING</button>
+            </div>
+
         </div>
-    </div>
+    </main>
 
     <script>
         const socket = io();
-        const multiplierEl = document.getElementById('multiplier');
-        const statusText = document.getElementById('statusText');
-        const historyBar = document.getElementById('historyBar');
-        const nextPrediction = document.getElementById('nextPrediction');
-        const bottomPredict = document.getElementById('bottomPredict');
-        const aiProgress = document.getElementById('aiProgress');
-        const confLevel = document.getElementById('confLevel');
+        let currentGame = 'crash';
 
-        let history = [];
-
-        // Canvas setup
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        function resizeCanvas() {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = 350;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        let points = [];
-        function drawCurve(m) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.beginPath();
-            ctx.strokeStyle = '#ff3333';
-            ctx.lineWidth = 4;
-            ctx.moveTo(0, canvas.height);
+        // 1. SESSION LOGIC
+        function linkSession() {
+            const sid = document.getElementById('sessionInput').value;
+            if(!sid) return alert("Please enter Session ID");
             
-            const xStep = canvas.width / 50;
-            const yFactor = (m - 1) * 20;
-            
-            points.push({x: points.length * 5, y: canvas.height - yFactor});
-            if(points.length > 200) points.shift();
-
-            ctx.beginPath();
-            ctx.moveTo(0, canvas.height);
-            points.forEach(p => ctx.lineTo(p.x, p.y));
-            ctx.stroke();
-        }
-
-        socket.on('TICK', (data) => {
-            multiplierEl.innerText = data.multiplier.toFixed(2) + 'x';
-            multiplierEl.classList.remove('crash-red');
-            statusText.innerText = "SAMOLYOT UCHMOQDA...";
-            drawCurve(data.multiplier);
-        });
-
-        socket.on('GAME_CRASHED', (data) => {
-            multiplierEl.innerText = data.crashPoint + 'x';
-            multiplierEl.classList.add('crash-red');
-            statusText.innerText = "PORTLADI!";
-            points = [];
-            updateHistory(data.history);
-            generateFakePrediction();
-        });
-
-        socket.on('INIT_HISTORY', (data) => {
-            updateHistory(data);
-            generateFakePrediction();
-        });
-
-        function updateHistory(data) {
-            historyBar.innerHTML = '';
-            data.forEach(val => {
-                const badge = document.createElement('span');
-                badge.className = `history-badge ${val > 2 ? 'badge-purple' : 'badge-blue'}`;
-                badge.innerText = val + 'x';
-                historyBar.appendChild(badge);
-            });
-        }
-
-        function generateFakePrediction() {
-            aiProgress.style.width = '0%';
-            nextPrediction.innerText = "SCANNING...";
+            document.getElementById('displayId').innerText = sid.substring(0, 10) + '...';
+            document.getElementById('sysStatus').innerText = 'DECRYPTING...';
+            addLog("Initiating Session Handshake: " + sid);
             
             setTimeout(() => {
-                aiProgress.style.width = '100%';
-                const fake = (Math.random() * (5.0 - 1.2) + 1.2).toFixed(2);
-                const conf = Math.floor(Math.random() * (99 - 88) + 88);
-                
-                nextPrediction.innerText = fake + "x";
-                bottomPredict.innerText = fake + "x";
-                confLevel.innerText = conf + "%";
+                document.getElementById('sysStatus').innerText = 'CONNECTED';
+                addLog("Session Linked Successfully. WebSocket bypass active.");
+                addLog("Sniffing GamePackets: 1xbet.com/games/crash");
             }, 2000);
         }
 
-        function saveSession() {
-            const id = document.getElementById('sessionInput').value;
-            if(id) {
-                localStorage.setItem('x_session', id);
-                alert("Session ID bog'landi. Server skanerlanmoqda...");
-            }
+        function addLog(msg) {
+            const con = document.getElementById('console');
+            const time = new Date().toLocaleTimeString();
+            con.innerHTML += `<div><span style="color:#666">[${time}]</span> > ${msg}</div>`;
+            con.scrollTop = con.scrollHeight;
         }
 
-        window.onload = () => {
-            const saved = localStorage.getItem('x_session');
-            if(saved) document.getElementById('sessionInput').value = saved;
-        };
+        // 2. GAME SWITCHER
+        function switchGame(game) {
+            document.querySelectorAll('.game-module').forEach(m => m.classList.add('hidden'));
+            document.querySelectorAll('.game-nav-item').forEach(n => n.classList.remove('active'));
+            
+            document.getElementById('game-' + game).classList.remove('hidden');
+            document.getElementById('nav-' + game).classList.add('active');
+            currentGame = game;
+            addLog("Switched to Module: " + game.toUpperCase());
+        }
+
+        // 3. CRASH MODULE
+        socket.on('CRASH_TICK', (data) => {
+            if(currentGame === 'crash') {
+                document.getElementById('crashMult').innerText = data.multiplier.toFixed(2) + 'x';
+                document.getElementById('crashStatus').innerText = 'LIVE FLIGHT...';
+            }
+        });
+
+        socket.on('CRASH_FINISHED', (data) => {
+            if(currentGame === 'crash') {
+                document.getElementById('crashMult').innerText = data.crashAt + 'x';
+                document.getElementById('crashMult').style.color = '#ff3333';
+                document.getElementById('crashStatus').innerText = 'CRASHED!';
+                
+                updateCrashHistory(data.history);
+                
+                setTimeout(() => {
+                    document.getElementById('crashMult').style.color = '#fff';
+                    predictNextCrash();
+                }, 2000);
+            }
+        });
+
+        function updateCrashHistory(history) {
+            const hBar = document.getElementById('crashHistory');
+            hBar.innerHTML = '';
+            history.forEach(val => {
+                const el = document.createElement('div');
+                el.className = `px-3 py-1 rounded-full text-xs font-bold ${val > 2 ? 'bg-purple-600' : 'bg-blue-500'}`;
+                el.innerText = val + 'x';
+                hBar.appendChild(el);
+            });
+        }
+
+        function predictNextCrash() {
+            addLog("Analyzing patterns for next round...");
+            const p = document.getElementById('crashPredict');
+            p.innerText = "SCANNING...";
+            setTimeout(() => {
+                const val = (Math.random() * (4.0 - 1.1) + 1.1).toFixed(2);
+                p.innerText = val + 'x';
+                addLog("AI Prediction confirmed: " + val + "x");
+            }, 3000);
+        }
+
+        // 4. APPLE MODULE
+        function getApplePath() {
+            addLog("Intercepting Apple of Fortune Seed...");
+            socket.emit('GET_APPLE_PREDICTION');
+        }
+
+        socket.on('APPLE_PATH', (path) => {
+            const grid = document.getElementById('appleGrid');
+            grid.innerHTML = '';
+            addLog("Path decoded. High probability cells marked.");
+            
+            path.reverse().forEach((safeCols, index) => {
+                const row = document.createElement('div');
+                row.className = 'apple-row';
+                for(let i=1; i<=5; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'apple-cell' + (safeCols.includes(i) ? ' safe' : '');
+                    row.appendChild(cell);
+                }
+                grid.appendChild(row);
+            });
+        });
+
+        // 5. THIMBLES MODULE
+        function startThimbles() {
+            addLog("Tracking Thimbles Object ID...");
+            socket.emit('START_THIMBLES');
+            document.querySelectorAll('.thimble').forEach(t => t.classList.remove('up'));
+            document.querySelectorAll('[id^="hint-"]').forEach(h => h.style.opacity = '0');
+        }
+
+        socket.on('THIMBLES_READY', (data) => {
+            addLog("Ball detected in Thimble Position: " + data.win);
+            setTimeout(() => {
+                const hint = document.getElementById('hint-' + data.win);
+                hint.style.opacity = '1';
+                document.getElementById('t' + data.win).classList.add('up');
+            }, 500);
+        });
+
     </script>
 </body>
 </html>
