@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X-PRO | SERVER-SIDE PREDICTOR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #050510;
+            color: #00f2ff;
+            font-family: 'Orbitron', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .main-frame {
+            width: 90%;
+            max-width: 1000px;
+            height: 600px;
+            border: 2px solid #00f2ff;
+            box-shadow: 0 0 20px #00f2ff44;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            background: rgba(0,0,0,0.8);
+            border-radius: 10px;
+        }
+
+        .sidebar {
+            padding: 20px;
+            border-right: 1px solid #00f2ff33;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .dashboard {
+            padding: 40px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            background: #111;
+            border: 1px solid #00f2ff;
+            color: #fff;
+            margin-bottom: 20px;
+            font-family: 'Orbitron';
+        }
+
+        .btn-activate {
+            background: #00f2ff;
+            color: #000;
+            border: none;
+            padding: 15px;
+            width: 100%;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-activate:hover { background: #fff; box-shadow: 0 0 15px #fff; }
+
+        .prediction-display {
+            font-size: 100px;
+            font-weight: 900;
+            text-shadow: 0 0 30px #00f2ff;
+            margin: 20px 0;
+        }
+
+        .confidence-meter {
+            height: 10px;
+            width: 100%;
+            background: #222;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #00f2ff, #7000ff);
+            transition: 1s ease;
+        }
+
+        .log-box {
+            font-size: 10px;
+            color: #555;
+            height: 150px;
+            overflow-y: auto;
+            text-align: left;
+            margin-top: 20px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .main-frame { grid-template-columns: 1fr; height: auto; }
+            .sidebar { border-right: none; border-bottom: 1px solid #00f2ff33; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-frame">
+    <div class="sidebar">
+        <h3>TIZIMNI SOZLASH</h3>
+        <p style="font-size: 10px; color: #888;">SERVER-SIDE SCANNING v4.2</p>
+        <input type="text" id="sessionInput" placeholder="SESSION ID / ACCOUNT ID">
+        <button class="btn-activate" onclick="startSystem()">TIZIMNI YOQISH</button>
+        
+        <div class="log-box" id="logs">
+            [SYSTEM] Tayyor...
+        </div>
+    </div>
+
+    <div class="dashboard">
+        <div id="status">STATUS: OFFLINE</div>
+        <div class="prediction-display" id="predictValue">--.--</div>
+        <div style="margin-bottom: 5px;">ISHONCH DARAJASI: <span id="confText">0%</span></div>
+        <div class="confidence-meter">
+            <div class="confidence-fill" id="confFill"></div>
+        </div>
+        <p style="color: #555; font-size: 12px; margin-top: 30px;">
+            DIQQAT: Server 1xbet demo serverlaridan ma'lumotlarni paket ko'rinishida tahlil qilmoqda.
+        </p>
+    </div>
+</div>
+
+<script>
+    const socket = io();
+    const logBox = document.getElementById('logs');
+
+    function addLog(msg) {
+        const div = document.createElement('div');
+        div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        logBox.prepend(div);
+    }
+
+    function startSystem() {
+        const id = document.getElementById('sessionInput').value;
+        if(!id) return alert("ID kiriting!");
+
+        localStorage.setItem('x_session_id', id);
+        addLog("Server bilan aloqa o'rnatilmoqda...");
+        
+        socket.emit('ACTIVATE_SESSION', { sessionId: id });
+        document.getElementById('status').innerText = "STATUS: LIVE CONNECTED";
+        document.getElementById('status').style.color = "#0f0";
+    }
+
+    socket.on('SERVER_PREDICTION', (data) => {
+        addLog(`Yangi natija aniqlandi: ${data.prediction}x`);
+        document.getElementById('predictValue').innerText = data.prediction + 'x';
+        document.getElementById('confText').innerText = data.confidence + '%';
+        document.getElementById('confFill').style.width = data.confidence + '%';
+        
+        // Ovozli effekt (ixtiyoriy)
+        const beep = new Audio('https://www.soundjay.com/buttons/sounds/button-3.mp3');
+        beep.play();
+    });
+
+    window.onload = () => {
+        const saved = localStorage.getItem('x_session_id');
+        if(saved) document.getElementById('sessionInput').value = saved;
+    };
+</script>
+
+</body>
+</html>
