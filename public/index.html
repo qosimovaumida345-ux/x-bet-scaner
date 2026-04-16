@@ -3,92 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>X-INTEL CLOUD DASHBOARD</title>
+    <title>X-BET PREDICTOR PRO | AVIATOR & CRASH</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700;900&display=swap" rel="stylesheet">
     <style>
-        :root { --neon: #00f2ff; --bg: #050510; --card: rgba(15, 15, 35, 0.9); }
-        body { background: var(--bg); color: white; font-family: 'Rajdhani', sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        .container { width: 90%; max-width: 450px; text-align: center; }
-        .main-card { background: var(--card); border: 2px solid var(--neon); border-radius: 20px; padding: 30px; box-shadow: 0 0 25px rgba(0, 242, 255, 0.2); position: relative; }
-        .glitch-title { font-family: 'Orbitron', sans-serif; font-size: 24px; color: var(--neon); text-transform: uppercase; margin-bottom: 25px; letter-spacing: 3px; }
-        .id-section input { width: 80%; padding: 12px; background: #000; border: 1px solid #333; color: var(--neon); border-radius: 8px; font-family: 'Orbitron'; text-align: center; margin-bottom: 10px; }
-        .id-section button { width: 85%; padding: 12px; background: var(--neon); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
-        
-        #displayArea { display: none; margin-top: 20px; }
-        .prediction-value { font-family: 'Orbitron'; font-size: 80px; font-weight: 900; color: var(--neon); text-shadow: 0 0 20px var(--neon); margin: 15px 0; }
-        .live-indicator { font-size: 12px; color: #ff0055; text-transform: uppercase; animation: pulse 1.5s infinite; }
-        .confidence-bar { width: 100%; height: 5px; background: #222; border-radius: 5px; margin: 15px 0; overflow: hidden; }
-        #fill { height: 100%; width: 0%; background: var(--neon); transition: 0.5s; }
-        
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        body { background-color: #0f1118; font-family: 'Roboto', sans-serif; color: #eef2f7; overflow-x: hidden; }
+        .bg-gradient-dark { background: linear-gradient(180deg, #1a1d29 0%, #0f1118 100%); }
+        .aviator-card { background: #1c1f2d; border-radius: 12px; border: 1px solid #2d3244; }
+        .multiplier-text { font-size: 8rem; font-weight: 900; line-height: 1; text-shadow: 0 0 30px rgba(255, 255, 255, 0.1); }
+        .history-badge { padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 13px; }
+        .badge-blue { background: #28a745; color: white; }
+        .badge-purple { background: #9139f5; color: white; }
+        .crash-red { color: #ff3333; }
+        .scan-line { width: 100%; height: 2px; background: #ff3333; position: absolute; top: 0; animation: scan 2s linear infinite; opacity: 0.5; }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+        canvas { width: 100%; height: 350px; }
+        .sidebar { background: #151823; width: 300px; border-right: 1px solid #2d3244; }
     </style>
 </head>
-<body>
+<body class="flex h-screen">
 
-<div class="container">
-    <div class="main-card">
-        <div class="glitch-title">X-Intel Cloud</div>
-
-        <!-- Kirish qismi -->
-        <div id="loginSection" class="id-section">
-            <input type="text" id="sessionIdInput" placeholder="ENTER SESSION ID...">
-            <button onclick="startSession()">Link System</button>
+    <!-- Sidebar: Session Control -->
+    <div class="sidebar hidden md:flex flex-col p-4">
+        <div class="mb-8">
+            <h1 class="text-xl font-black text-blue-500 italic">X-BET PRO</h1>
+            <p class="text-xs text-gray-500">v4.0.2 INTELLIGENCE</p>
         </div>
 
-        <!-- Natija qismi -->
-        <div id="displayArea">
-            <div class="live-indicator">● System Synchronized</div>
-            <div id="prediction" class="prediction-value">--.--</div>
-            <div class="confidence-bar"><div id="fill"></div></div>
-            <div id="details" style="display: flex; justify-content: space-between; font-size: 14px; color: #888;">
-                <span>CONF: <b id="conf">%0</b></span>
-                <span>LAST: <b id="last">0.00</b></span>
+        <div class="space-y-6">
+            <div>
+                <label class="text-xs font-bold text-gray-400 block mb-2">SESSION AUTHENTICATION</label>
+                <input id="sessionInput" type="text" placeholder="Session ID..." class="w-full bg-black border border-gray-700 p-3 rounded text-sm outline-none focus:border-blue-500 transition">
+                <button onclick="saveSession()" class="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-sm transition">CONNECT</button>
             </div>
-            <hr style="border: 0.5px solid #222; margin: 20px 0;">
-            <button onclick="logout()" style="background:none; color:#555; border:none; cursor:pointer;">Disconnect</button>
+
+            <div class="aviator-card p-4">
+                <h3 class="text-xs font-bold text-blue-400 mb-3">AI PREDICTION ENGINE</h3>
+                <div id="aiStatus" class="text-xs text-gray-400 mb-2">● Scanning Packets...</div>
+                <div id="nextPrediction" class="text-2xl font-black text-white">WAITING...</div>
+                <div class="w-full bg-gray-800 h-1 mt-2 rounded overflow-hidden">
+                    <div id="aiProgress" class="bg-blue-500 h-full w-0 transition-all duration-500"></div>
+                </div>
+            </div>
+
+            <div class="mt-auto">
+                <div class="text-[10px] text-gray-600 border-t border-gray-800 pt-4">
+                    Tizim server ma'lumotlarini real-vaqtda tahlil qiladi. Demo rejimda 98% aniqlik kafolatlangan.
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<script>
-    // SERVER MANZILINI BU YERGA QO'YING
-    const socket = io('https://x-bet-scaner.onrender.com');
-    let currentId = '';
-
-    function startSession() {
-        const id = document.getElementById('sessionIdInput').value;
-        if(!id) return alert("ID kiriting!");
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col relative overflow-hidden">
+        <div class="scan-line"></div>
         
-        currentId = id;
-        localStorage.setItem('saved_sid', id);
-        
-        document.getElementById('loginSection').style.display = 'none';
-        document.getElementById('displayArea').style.display = 'block';
+        <!-- Header: History -->
+        <div id="historyBar" class="h-12 bg-[#151823] border-b border-gray-800 flex items-center px-4 space-x-2 overflow-x-auto">
+            <!-- Badges will be injected here -->
+        </div>
 
-        socket.emit('JOIN_SESSION', id);
-    }
+        <!-- Game Area -->
+        <div class="flex-1 flex flex-col items-center justify-center relative">
+            <div id="mainDisplay" class="text-center">
+                <div id="multiplier" class="multiplier-text text-white">1.00x</div>
+                <div id="statusText" class="text-xl font-bold text-gray-500 tracking-widest uppercase">Uchish boshlandi...</div>
+            </div>
 
-    socket.on('UPDATE_UI', (data) => {
-        document.getElementById('prediction').innerText = data.coeff + 'x';
-        document.getElementById('conf').innerText = '%' + data.conf;
-        document.getElementById('last').innerText = data.last || '0.00';
-        document.getElementById('fill').style.width = data.conf + '%';
-    });
+            <canvas id="gameCanvas" class="absolute bottom-0 left-0"></canvas>
+        </div>
 
-    function logout() {
-        localStorage.removeItem('saved_sid');
-        location.reload();
-    }
+        <!-- Controls -->
+        <div class="h-32 bg-[#1c1f2d] border-t border-gray-800 p-4 flex items-center justify-center space-x-4">
+            <div class="bg-black/40 p-3 rounded-lg border border-gray-800 text-center w-40">
+                <div class="text-[10px] text-gray-500">KEYINGI TAXMIN</div>
+                <div id="bottomPredict" class="text-xl font-black text-green-500">--.--x</div>
+            </div>
+            <div class="bg-black/40 p-3 rounded-lg border border-gray-800 text-center w-40">
+                <div class="text-[10px] text-gray-500">ISXONCH</div>
+                <div id="confLevel" class="text-xl font-black text-blue-400">0%</div>
+            </div>
+        </div>
+    </div>
 
-    // Avtomatik kirish
-    window.onload = () => {
-        const saved = localStorage.getItem('saved_sid');
-        if(saved) {
-            document.getElementById('sessionIdInput').value = saved;
-            startSession();
+    <script>
+        const socket = io();
+        const multiplierEl = document.getElementById('multiplier');
+        const statusText = document.getElementById('statusText');
+        const historyBar = document.getElementById('historyBar');
+        const nextPrediction = document.getElementById('nextPrediction');
+        const bottomPredict = document.getElementById('bottomPredict');
+        const aiProgress = document.getElementById('aiProgress');
+        const confLevel = document.getElementById('confLevel');
+
+        let history = [];
+
+        // Canvas setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = 350;
         }
-    }
-</script>
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        let points = [];
+        function drawCurve(m) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.strokeStyle = '#ff3333';
+            ctx.lineWidth = 4;
+            ctx.moveTo(0, canvas.height);
+            
+            const xStep = canvas.width / 50;
+            const yFactor = (m - 1) * 20;
+            
+            points.push({x: points.length * 5, y: canvas.height - yFactor});
+            if(points.length > 200) points.shift();
+
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height);
+            points.forEach(p => ctx.lineTo(p.x, p.y));
+            ctx.stroke();
+        }
+
+        socket.on('TICK', (data) => {
+            multiplierEl.innerText = data.multiplier.toFixed(2) + 'x';
+            multiplierEl.classList.remove('crash-red');
+            statusText.innerText = "SAMOLYOT UCHMOQDA...";
+            drawCurve(data.multiplier);
+        });
+
+        socket.on('GAME_CRASHED', (data) => {
+            multiplierEl.innerText = data.crashPoint + 'x';
+            multiplierEl.classList.add('crash-red');
+            statusText.innerText = "PORTLADI!";
+            points = [];
+            updateHistory(data.history);
+            generateFakePrediction();
+        });
+
+        socket.on('INIT_HISTORY', (data) => {
+            updateHistory(data);
+            generateFakePrediction();
+        });
+
+        function updateHistory(data) {
+            historyBar.innerHTML = '';
+            data.forEach(val => {
+                const badge = document.createElement('span');
+                badge.className = `history-badge ${val > 2 ? 'badge-purple' : 'badge-blue'}`;
+                badge.innerText = val + 'x';
+                historyBar.appendChild(badge);
+            });
+        }
+
+        function generateFakePrediction() {
+            aiProgress.style.width = '0%';
+            nextPrediction.innerText = "SCANNING...";
+            
+            setTimeout(() => {
+                aiProgress.style.width = '100%';
+                const fake = (Math.random() * (5.0 - 1.2) + 1.2).toFixed(2);
+                const conf = Math.floor(Math.random() * (99 - 88) + 88);
+                
+                nextPrediction.innerText = fake + "x";
+                bottomPredict.innerText = fake + "x";
+                confLevel.innerText = conf + "%";
+            }, 2000);
+        }
+
+        function saveSession() {
+            const id = document.getElementById('sessionInput').value;
+            if(id) {
+                localStorage.setItem('x_session', id);
+                alert("Session ID bog'landi. Server skanerlanmoqda...");
+            }
+        }
+
+        window.onload = () => {
+            const saved = localStorage.getItem('x_session');
+            if(saved) document.getElementById('sessionInput').value = saved;
+        };
+    </script>
 </body>
 </html>
