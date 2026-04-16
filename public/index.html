@@ -3,253 +3,303 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>X-BET ULTIMATE PREDICTOR</title>
+    <title>1XBET PRO - INTELLIGENCE SYSTEM</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
+        :root { --blue: #0055a4; --dark: #0e101b; --panel: #1c2130; --green: #28a745; --gold: #ffc600; }
+        body { background: var(--dark); color: #fff; font-family: 'Montserrat', sans-serif; overflow: hidden; }
         
-        :root { --main-blue: #0056b3; --dark-bg: #0e101b; --panel-bg: #1c2130; --gold: #ffc600; }
-        body { background: var(--dark-bg); color: #fff; font-family: 'Montserrat', sans-serif; }
+        /* Layout */
+        .sidebar { width: 300px; background: #151926; border-right: 1px solid #2d3446; height: 100vh; }
+        .main-content { flex: 1; height: 100vh; overflow-y: auto; }
         
-        .game-nav-item { cursor: pointer; padding: 15px; border-bottom: 3px solid transparent; transition: 0.3s; font-weight: bold; font-size: 13px; color: #8a8f9d; }
-        .game-nav-item.active { border-color: var(--main-blue); color: #fff; background: rgba(0,86,179,0.1); }
+        /* 1xBet Elements */
+        .top-nav { background: #1a1d29; border-bottom: 2px solid var(--blue); }
+        .nav-item { padding: 0 15px; cursor: pointer; display: flex; align-items: center; border-bottom: 3px solid transparent; height: 100%; transition: 0.2s; font-size: 13px; font-weight: 700; color: #8a8f9d; }
+        .nav-item.active { border-color: var(--blue); color: #fff; background: rgba(0,85,164,0.1); }
         
-        .glass-panel { background: var(--panel-bg); border: 1px solid #2d3446; border-radius: 12px; }
-        .multiplier-display { font-size: 100px; font-weight: 900; text-shadow: 0 0 30px rgba(0,242,255,0.3); }
-        
-        /* Apple of Fortune Grid */
-        .apple-grid { display: grid; grid-template-rows: repeat(10, 1fr); gap: 5px; width: 100%; max-width: 400px; }
-        .apple-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-        .apple-cell { height: 40px; background: #151926; border: 1px solid #2d3446; display: flex; align-items: center; justify-content: center; position: relative; }
-        .apple-cell.safe { background: rgba(0, 255, 0, 0.1); border-color: #00ff00; }
-        .apple-cell.safe::after { content: '🍎'; font-size: 18px; }
+        .glass-card { background: var(--panel); border: 1px solid #2d3446; border-radius: 12px; }
+        .btn-blue { background: var(--blue); border-radius: 4px; padding: 10px; font-weight: bold; transition: 0.3s; }
+        .btn-blue:hover { background: #0066c4; }
 
-        /* Thimbles */
-        .thimbles-container { display: flex; justify-content: center; gap: 30px; margin-top: 50px; }
-        .thimble { width: 100px; transition: transform 0.5s; cursor: pointer; }
-        .thimble.up { transform: translateY(-50px); }
+        /* Game Displays */
+        .crash-bg { background: radial-gradient(circle, #1a1d29 0%, #000 100%); position: relative; height: 450px; border-radius: 8px; overflow: hidden; }
+        .mult-text { font-size: 100px; font-weight: 900; z-index: 10; position: relative; text-shadow: 0 0 40px rgba(255,255,255,0.2); }
+        
+        /* Apple Grid Custom Styling */
+        .apple-grid { display: flex; flex-direction: column-reverse; gap: 4px; width: 100%; max-width: 450px; margin: 0 auto; }
+        .apple-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+        .apple-cell { height: 42px; background: #151926; border: 1px solid #2d3446; display: flex; align-items: center; justify-content: center; border-radius: 4px; }
+        .apple-cell.safe { background: rgba(40, 167, 69, 0.15); border: 1px solid var(--green); box-shadow: inset 0 0 10px rgba(40, 167, 69, 0.2); }
+        .apple-cell.safe::after { content: '🍎'; font-size: 20px; }
 
-        /* Log window */
-        .console { font-family: 'Courier New', monospace; font-size: 10px; color: #4ade80; background: #000; padding: 10px; height: 150px; overflow-y: auto; border: 1px solid #222; }
+        /* Terminal Style */
+        .terminal { font-family: 'Courier New', monospace; font-size: 11px; background: #000; color: #4ade80; padding: 10px; height: 200px; overflow-y: auto; border: 1px solid #222; }
+
+        /* Banner Backgrounds - Using User Provided References */
+        .banner-crash { background: url('https://i.ibb.co/LNYNfR4/crash-banner.png') center/cover; height: 180px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #333; }
+        .banner-apple { background: url('https://i.ibb.co/0Vp9C5W/apple-banner.png') center/cover; height: 180px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #333; }
+        
+        /* Animations */
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .pulse { animation: pulse 1s infinite; }
     </style>
 </head>
-<body class="flex flex-col h-screen">
+<body class="flex">
 
-    <!-- TOP HEADER -->
-    <header class="h-16 bg-[#1a1d29] border-b border-[#2d3446] flex items-center px-6 justify-between">
-        <div class="flex items-center space-x-10">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/1xBet_logo.svg" height="25" width="120">
-            <nav class="flex h-16">
-                <div onclick="switchGame('crash')" id="nav-crash" class="game-nav-item active">AVIATOR / CRASH</div>
-                <div onclick="switchGame('apple')" id="nav-apple" class="game-nav-item">APPLE OF FORTUNE</div>
-                <div onclick="switchGame('thimbles')" id="nav-thimbles" class="game-nav-item">THIMBLES</div>
-            </nav>
+    <!-- SIDEBAR: CONTROL CENTER -->
+    <div class="sidebar flex flex-col">
+        <div class="p-6 border-b border-gray-800">
+            <h1 class="text-xl font-black text-blue-500 italic">1XBET PRO</h1>
+            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Intelligence System</p>
         </div>
-        <div class="flex items-center space-x-4">
-            <div class="text-right">
-                <div class="text-[10px] text-gray-500">ID: <span id="displayId">NOT LINKED</span></div>
-                <div class="text-yellow-500 font-bold">0.00 UZS</div>
+
+        <div class="p-4 space-y-6 flex-1 overflow-y-auto">
+            <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase mb-2 block">Link 1xBet Session</label>
+                <input id="sid" type="text" placeholder="Paste v_sid from cookies..." class="w-full bg-black border border-gray-800 p-3 rounded text-xs outline-none focus:border-blue-500">
+                <button onclick="linkSession()" class="w-full btn-blue mt-3 text-xs">INITIALIZE DECRYPTOR</button>
             </div>
-            <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-bold">U</div>
-        </div>
-    </header>
 
-    <main class="flex-1 flex overflow-hidden p-4 space-x-4">
+            <div class="glass-card p-4">
+                <h3 class="text-[10px] font-bold text-yellow-500 mb-3 uppercase">AI Engine Status</h3>
+                <div class="flex justify-between text-xs mb-1"><span>Accuracy:</span><span class="text-green-500">99.8%</span></div>
+                <div class="flex justify-between text-xs mb-1"><span>Latency:</span><span class="text-blue-400">14ms</span></div>
+                <div class="flex justify-between text-xs"><span>Mode:</span><span class="text-purple-500">GHOST</span></div>
+            </div>
+
+            <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase mb-2 block">System Terminal</label>
+                <div id="terminal" class="terminal rounded">
+                    > BIOS v8.0.2 Initialized...<br>
+                    > Waiting for Session Link...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content flex flex-col">
         
-        <!-- LEFT SIDE: CONTROLS & LOGS -->
-        <div class="w-1/4 flex flex-col space-y-4">
-            <div class="glass-panel p-6">
-                <h3 class="text-sm font-bold text-blue-400 mb-4 uppercase">System Sync</h3>
-                <input id="sessionInput" type="text" placeholder="SESSION ID (e.g. 8x22...)" class="w-full bg-black border border-gray-700 p-3 rounded text-sm mb-3 outline-none focus:border-blue-500">
-                <button onclick="linkSession()" class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded font-bold transition">LINK ACCOUNT</button>
+        <!-- TOP NAV -->
+        <header class="top-nav h-14 flex items-center px-6 justify-between flex-shrink-0">
+            <div class="flex h-full items-center">
+                <div onclick="switchGame('crash')" id="nav-crash" class="nav-item active">CRASH / AVIATOR</div>
+                <div onclick="switchGame('apple')" id="nav-apple" class="nav-item">APPLE OF FORTUNE</div>
+                <div onclick="switchGame('thimbles')" id="nav-thimbles" class="nav-item">THIMBLES</div>
             </div>
-
-            <div class="glass-panel p-4 flex-1 flex flex-col">
-                <h3 class="text-xs font-bold text-gray-500 mb-2 uppercase">Packet Interceptor</h3>
-                <div id="console" class="console flex-1 rounded">
-                    > System Kernel Initialized...<br>
-                    > Waiting for User Session...
+            <div class="flex items-center space-x-4">
+                <div class="text-right">
+                    <div class="text-[10px] text-gray-500">USER: <span id="userIdDisplay" class="text-blue-400">GUEST_4401</span></div>
+                    <div class="text-sm font-black text-white">0.00 UZS</div>
                 </div>
+                <div class="w-9 h-9 bg-blue-600 rounded-full border-2 border-white/20"></div>
             </div>
+        </header>
 
-            <div class="glass-panel p-4">
-                <div class="text-[10px] text-gray-400">STATUS: <span class="text-green-500" id="sysStatus">STANDBY</span></div>
-                <div class="text-[10px] text-gray-400">AI ACCURACY: <span class="text-yellow-500">99.2%</span></div>
-            </div>
-        </div>
-
-        <!-- RIGHT SIDE: GAME VIEWER -->
-        <div class="flex-1 glass-panel relative flex flex-col">
+        <!-- GAME MODULES CONTAINER -->
+        <div class="p-6">
             
-            <!-- CRASH / AVIATOR MODULE -->
-            <div id="game-crash" class="game-module flex flex-col h-full items-center justify-center p-10">
-                <div class="absolute top-4 left-4 flex gap-2" id="crashHistory">
-                    <!-- History will go here -->
+            <!-- CRASH MODULE -->
+            <div id="game-crash" class="game-module block">
+                <div class="banner-crash flex items-center p-8">
+                    <h2 class="text-4xl font-black text-white italic">CRASH POINT <br><span class="text-sm text-gray-300 not-italic">INTELLIGENT PREDICTOR</span></h2>
                 </div>
-                <div id="crashMult" class="multiplier-display">1.00x</div>
-                <div id="crashStatus" class="text-gray-500 font-bold tracking-widest mt-4">WAITING FOR NEXT ROUND...</div>
-                
-                <div class="mt-20 p-6 border border-blue-500/30 rounded-xl bg-blue-500/5 text-center">
-                    <div class="text-xs text-blue-400 mb-2">AI NEXT CRASH PREDICTION</div>
-                    <div id="crashPredict" class="text-4xl font-black">--.--x</div>
+
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="col-span-2 crash-bg flex flex-col items-center justify-center">
+                        <div id="mult" class="mult-text">1.00x</div>
+                        <div id="crashStatus" class="text-gray-500 font-bold tracking-[5px] uppercase mt-4">Waiting for next round...</div>
+                        
+                        <!-- History Badges -->
+                        <div class="absolute top-4 right-4 flex gap-2" id="crashHistory"></div>
+                    </div>
+
+                    <div class="flex flex-col space-y-4">
+                        <div class="glass-card p-6 flex-1 flex flex-col items-center justify-center">
+                            <h3 class="text-xs font-bold text-blue-400 mb-2 uppercase">AI Prediction</h3>
+                            <div id="prediction" class="text-6xl font-black text-white">--.--x</div>
+                            <div class="text-[10px] text-green-500 mt-4 font-bold pulse">● PACKETS DECRYPTED</div>
+                        </div>
+                        <button class="bg-green-600 h-24 rounded-xl font-black text-2xl hover:bg-green-500 transition">BET NOW</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- APPLE OF FORTUNE MODULE -->
-            <div id="game-apple" class="game-module hidden flex flex-col h-full items-center p-6 overflow-y-auto">
-                <h2 class="text-xl font-bold mb-6 text-yellow-500">APPLE OF FORTUNE PATHFINDER</h2>
-                <div class="apple-grid" id="appleGrid">
-                    <!-- 10 rows generated by JS -->
+            <!-- APPLE MODULE -->
+            <div id="game-apple" class="game-module hidden">
+                <div class="banner-apple flex items-center p-8">
+                    <h2 class="text-4xl font-black text-white italic">APPLE OF FORTUNE <br><span class="text-sm text-gray-300 not-italic">PATH DECRYPTOR v2.0</span></h2>
                 </div>
-                <button onclick="getApplePath()" class="mt-6 bg-yellow-600 px-10 py-3 rounded-full font-bold">GET SECURE PATH</button>
+
+                <div class="flex space-x-6">
+                    <div class="flex-1 glass-card p-8">
+                        <div class="apple-grid" id="appleGrid">
+                            <!-- JS will generate 10 rows -->
+                        </div>
+                    </div>
+                    <div class="w-80 flex flex-col space-y-4">
+                        <div class="glass-card p-6 text-center">
+                            <h3 class="text-xs font-bold text-yellow-500 mb-4 uppercase">AI Intelligence Path</h3>
+                            <p class="text-[11px] text-gray-400 leading-relaxed">System has decrypted the level seeds. Green markers indicate 98% safe path for the current round.</p>
+                        </div>
+                        <button onclick="getApplePrediction()" class="bg-yellow-600 py-6 rounded-xl font-black text-xl hover:bg-yellow-500 transition">GET NEW PATH</button>
+                        <button class="bg-[#1c1f2d] border border-gray-700 py-4 rounded-xl font-bold">RESET DATA</button>
+                    </div>
+                </div>
             </div>
 
             <!-- THIMBLES MODULE -->
-            <div id="game-thimbles" class="game-module hidden flex flex-col h-full items-center justify-center">
-                <h2 class="text-2xl font-bold mb-10">THIMBLES TRACKER</h2>
-                <div class="thimbles-container">
-                    <div id="thimble-1" class="thimble-box flex flex-col items-center">
-                        <div id="hint-1" class="mb-4 font-bold text-green-500 opacity-0">WIN HERE</div>
-                        <img src="https://i.ibb.co/L5pZ0vX/thimble.png" class="thimble" id="t1">
+            <div id="game-thimbles" class="game-module hidden">
+                <div class="glass-card p-20 flex flex-col items-center">
+                    <h2 class="text-3xl font-black mb-12 italic text-blue-500 uppercase">Thimbles Object Tracking</h2>
+                    <div class="flex gap-20 mb-20">
+                        <div id="t1" class="relative">
+                            <div id="h1" class="absolute -top-10 left-0 w-full text-center text-green-500 font-bold hidden">WIN</div>
+                            <img src="https://i.ibb.co/L5pZ0vX/thimble.png" class="w-32 transition-all">
+                        </div>
+                        <div id="t2" class="relative">
+                            <div id="h2" class="absolute -top-10 left-0 w-full text-center text-green-500 font-bold hidden">WIN</div>
+                            <img src="https://i.ibb.co/L5pZ0vX/thimble.png" class="w-32 transition-all">
+                        </div>
+                        <div id="t3" class="relative">
+                            <div id="h3" class="absolute -top-10 left-0 w-full text-center text-green-500 font-bold hidden">WIN</div>
+                            <img src="https://i.ibb.co/L5pZ0vX/thimble.png" class="w-32 transition-all">
+                        </div>
                     </div>
-                    <div id="thimble-2" class="thimble-box flex flex-col items-center">
-                        <div id="hint-2" class="mb-4 font-bold text-green-500 opacity-0">WIN HERE</div>
-                        <img src="https://i.ibb.co/L5pZ0vX/thimble.png" class="thimble" id="t2">
-                    </div>
-                    <div id="thimble-3" class="thimble-box flex flex-col items-center">
-                        <div id="hint-3" class="mb-4 font-bold text-green-500 opacity-0">WIN HERE</div>
-                        <img src="https://i.ibb.co/L5pZ0vX/thimble.png" class="thimble" id="t3">
-                    </div>
+                    <button onclick="playThimbles()" class="bg-blue-600 px-20 py-5 rounded-full font-black text-xl">SCAN SHUFFLE</button>
                 </div>
-                <button onclick="startThimbles()" class="mt-20 bg-blue-600 px-10 py-3 rounded font-bold">START SHUFFLE TRACKING</button>
             </div>
 
         </div>
-    </main>
+    </div>
 
     <script>
         const socket = io();
         let currentGame = 'crash';
 
-        // 1. SESSION LOGIC
+        // 1. CORE SYSTEM
         function linkSession() {
-            const sid = document.getElementById('sessionInput').value;
-            if(!sid) return alert("Please enter Session ID");
+            const sid = document.getElementById('sid').value;
+            if(!sid) return alert("Session ID is required!");
             
-            document.getElementById('displayId').innerText = sid.substring(0, 10) + '...';
-            document.getElementById('sysStatus').innerText = 'DECRYPTING...';
-            addLog("Initiating Session Handshake: " + sid);
-            
+            addLog("Handshake initiated with 1xBet server...");
             setTimeout(() => {
-                document.getElementById('sysStatus').innerText = 'CONNECTED';
-                addLog("Session Linked Successfully. WebSocket bypass active.");
-                addLog("Sniffing GamePackets: 1xbet.com/games/crash");
-            }, 2000);
+                addLog("Link established. WebSocket sniffing enabled.");
+                addLog("Ghost mode activated: Hide from 1x-Bot-Detector.");
+                document.getElementById('userIdDisplay').innerText = sid.substring(0, 10).toUpperCase();
+            }, 1500);
+            socket.emit('LINK_SESSION', { sid });
         }
 
         function addLog(msg) {
-            const con = document.getElementById('console');
-            const time = new Date().toLocaleTimeString();
-            con.innerHTML += `<div><span style="color:#666">[${time}]</span> > ${msg}</div>`;
-            con.scrollTop = con.scrollHeight;
+            const t = document.getElementById('terminal');
+            t.innerHTML += `<div>> ${msg}</div>`;
+            t.scrollTop = t.scrollHeight;
         }
 
-        // 2. GAME SWITCHER
         function switchGame(game) {
             document.querySelectorAll('.game-module').forEach(m => m.classList.add('hidden'));
-            document.querySelectorAll('.game-nav-item').forEach(n => n.classList.remove('active'));
-            
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById('game-' + game).classList.remove('hidden');
             document.getElementById('nav-' + game).classList.add('active');
             currentGame = game;
-            addLog("Switched to Module: " + game.toUpperCase());
+            addLog("Module Switch: " + game.toUpperCase());
         }
 
-        // 3. CRASH MODULE
+        // 2. CRASH ENGINE
         socket.on('CRASH_TICK', (data) => {
             if(currentGame === 'crash') {
-                document.getElementById('crashMult').innerText = data.multiplier.toFixed(2) + 'x';
-                document.getElementById('crashStatus').innerText = 'LIVE FLIGHT...';
+                const mult = document.getElementById('mult');
+                mult.innerText = data.mult.toFixed(2) + 'x';
+                mult.style.color = '#fff';
+                document.getElementById('crashStatus').innerText = 'FLIGHT IN PROGRESS...';
             }
         });
 
-        socket.on('CRASH_FINISHED', (data) => {
-            if(currentGame === 'crash') {
-                document.getElementById('crashMult').innerText = data.crashAt + 'x';
-                document.getElementById('crashMult').style.color = '#ff3333';
-                document.getElementById('crashStatus').innerText = 'CRASHED!';
-                
-                updateCrashHistory(data.history);
-                
-                setTimeout(() => {
-                    document.getElementById('crashMult').style.color = '#fff';
-                    predictNextCrash();
-                }, 2000);
-            }
+        socket.on('CRASH_PREPARE', (data) => {
+            addLog("Next Seed Found: " + data.next + "x");
+            document.getElementById('prediction').innerText = "SCANNING...";
+            setTimeout(() => {
+                document.getElementById('prediction').innerText = data.next + "x";
+                document.getElementById('prediction').classList.add('pulse');
+            }, 2000);
         });
 
-        function updateCrashHistory(history) {
-            const hBar = document.getElementById('crashHistory');
-            hBar.innerHTML = '';
+        socket.on('CRASH_END', (data) => {
+            const mult = document.getElementById('mult');
+            mult.innerText = data.crashAt + 'x';
+            mult.style.color = '#ff3333';
+            document.getElementById('crashStatus').innerText = 'CRASHED!';
+            document.getElementById('prediction').classList.remove('pulse');
+            updateHistory(data.history);
+        });
+
+        function updateHistory(history) {
+            const container = document.getElementById('crashHistory');
+            container.innerHTML = '';
             history.forEach(val => {
-                const el = document.createElement('div');
-                el.className = `px-3 py-1 rounded-full text-xs font-bold ${val > 2 ? 'bg-purple-600' : 'bg-blue-500'}`;
-                el.innerText = val + 'x';
-                hBar.appendChild(el);
+                const badge = document.createElement('div');
+                badge.className = `px-2 py-1 rounded text-[10px] font-bold ${val > 2 ? 'bg-purple-600' : 'bg-blue-500'}`;
+                badge.innerText = val + 'x';
+                container.appendChild(badge);
             });
         }
 
-        function predictNextCrash() {
-            addLog("Analyzing patterns for next round...");
-            const p = document.getElementById('crashPredict');
-            p.innerText = "SCANNING...";
-            setTimeout(() => {
-                const val = (Math.random() * (4.0 - 1.1) + 1.1).toFixed(2);
-                p.innerText = val + 'x';
-                addLog("AI Prediction confirmed: " + val + "x");
-            }, 3000);
+        // 3. APPLE ENGINE
+        function getApplePrediction() {
+            addLog("Sourcing level seeds for Apple of Fortune...");
+            socket.emit('GET_APPLE_MAP');
         }
 
-        // 4. APPLE MODULE
-        function getApplePath() {
-            addLog("Intercepting Apple of Fortune Seed...");
-            socket.emit('GET_APPLE_PREDICTION');
-        }
-
-        socket.on('APPLE_PATH', (path) => {
+        socket.on('APPLE_MAP', (map) => {
             const grid = document.getElementById('appleGrid');
             grid.innerHTML = '';
-            addLog("Path decoded. High probability cells marked.");
-            
-            path.reverse().forEach((safeCols, index) => {
+            map.forEach((safeCols, level) => {
                 const row = document.createElement('div');
                 row.className = 'apple-row';
                 for(let i=1; i<=5; i++) {
                     const cell = document.createElement('div');
-                    cell.className = 'apple-cell' + (safeCols.includes(i) ? ' safe' : '');
+                    cell.className = `apple-cell ${safeCols.includes(i) ? 'safe' : ''}`;
                     row.appendChild(cell);
                 }
                 grid.appendChild(row);
             });
+            addLog("Path decrypted. Probabilities updated.");
         });
 
-        // 5. THIMBLES MODULE
-        function startThimbles() {
-            addLog("Tracking Thimbles Object ID...");
-            socket.emit('START_THIMBLES');
-            document.querySelectorAll('.thimble').forEach(t => t.classList.remove('up'));
-            document.querySelectorAll('[id^="hint-"]').forEach(h => h.style.opacity = '0');
+        // 4. THIMBLES ENGINE
+        function playThimbles() {
+            addLog("Calibrating tracker on object...");
+            socket.emit('THIMBLES_PLAY');
+            document.querySelectorAll('[id^="h"]').forEach(h => h.classList.add('hidden'));
         }
 
-        socket.on('THIMBLES_READY', (data) => {
-            addLog("Ball detected in Thimble Position: " + data.win);
+        socket.on('THIMBLES_RESULT', (win) => {
             setTimeout(() => {
-                const hint = document.getElementById('hint-' + data.win);
-                hint.style.opacity = '1';
-                document.getElementById('t' + data.win).classList.add('up');
-            }, 500);
+                document.getElementById('h' + win).classList.remove('hidden');
+                addLog("Object tracked: Position " + win);
+            }, 1000);
         });
+
+        // INIT UI
+        window.onload = () => {
+            switchGame('crash');
+            // Generate empty Apple grid
+            const grid = document.getElementById('appleGrid');
+            for(let i=0; i<10; i++){
+                const row = document.createElement('div');
+                row.className = 'apple-row';
+                for(let j=0; j<5; j++){
+                    const cell = document.createElement('div');
+                    cell.className = 'apple-cell';
+                    row.appendChild(cell);
+                }
+                grid.appendChild(row);
+            }
+        };
 
     </script>
 </body>

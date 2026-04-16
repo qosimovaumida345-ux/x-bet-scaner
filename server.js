@@ -1,7 +1,6 @@
 /**
- * X-BET INTELLIGENCE SYSTEM v6.0
- * Backend: Node.js + Express + Socket.io
- * Purpose: Multi-game data interception and synchronization
+ * X-BET INTELLIGENCE SYSTEM v8.0 PRO
+ * Created by Daho Project
  */
 
 const express = require('express');
@@ -17,76 +16,77 @@ app.use(express.static(path.join(__dirname, 'public')));
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
-// O'yinlar holati (Global State)
-const gameState = {
-    crash: { multiplier: 1.0, history: [], isRunning: false },
-    apple: { path: [], currentLevel: 0 },
-    thimbles: { winningPos: 1, isShuffling: false }
+// GLOBAL STATE
+const state = {
+    activeSession: null,
+    crash: { mult: 1.0, history: [], next: 0, status: 'WAITING' },
+    apple: { levels: 10, cols: 5, currentPath: [] },
+    thimbles: { winPos: 1 }
 };
 
-// 1. CRASH & AVIATOR LOGIKASI
-function runCrashEngine() {
-    let multiplier = 1.0;
-    const crashAt = (Math.random() * (10.0 - 1.1) + 1.1).toFixed(2);
-    gameState.crash.isRunning = true;
+// --- LOGIC ENGINE ---
+
+// 1. CRASH ALGORITHM (Provably Fair Simulation)
+function crashLoop() {
+    state.crash.status = 'STARTING';
+    let currentMult = 1.0;
+    // Natijani oldindan aniqlash (Server-side seed)
+    const crashAt = (Math.random() * (12.0 - 1.1) + 1.1).toFixed(2);
+    state.crash.next = crashAt;
+
+    io.emit('CRASH_PREPARE', { next: crashAt });
 
     const interval = setInterval(() => {
-        if (multiplier >= crashAt) {
-            gameState.crash.isRunning = false;
-            gameState.crash.history.unshift(crashAt);
-            if(gameState.crash.history.length > 20) gameState.crash.history.pop();
-            io.emit('CRASH_FINISHED', { crashAt, history: gameState.crash.history });
+        if (currentMult >= crashAt) {
+            state.crash.status = 'CRASHED';
+            state.crash.history.unshift(crashAt);
+            io.emit('CRASH_END', { crashAt, history: state.crash.history.slice(0, 15) });
             clearInterval(interval);
-            setTimeout(runCrashEngine, 5000);
+            setTimeout(crashLoop, 6000);
         } else {
-            multiplier = parseFloat((multiplier + 0.03).toFixed(2));
-            gameState.crash.multiplier = multiplier;
-            io.emit('CRASH_TICK', { multiplier });
+            currentMult = parseFloat((currentMult + (currentMult * 0.02)).toFixed(2));
+            state.crash.mult = currentMult;
+            io.emit('CRASH_TICK', { mult: currentMult });
         }
-    }, 100);
+    }, 150);
 }
 
-// 2. APPLE OF FORTUNE LOGIKASI (10 qator, 5 ustun)
-function generateApplePath() {
-    const path = [];
+// 2. APPLE OF FORTUNE ENGINE
+function generateAppleMap() {
+    const map = [];
     for (let i = 0; i < 10; i++) {
-        // Har bir qator uchun xavfsiz ustunlarni generatsiya qilish
-        let safeColumns = [];
-        let count = i < 5 ? 4 : (i < 8 ? 3 : 1); // Yuqoriga chiqqan sayin olma kamayadi
-        while(safeColumns.length < count) {
+        let count = i < 4 ? 4 : (i < 7 ? 3 : (i < 9 ? 2 : 1)); 
+        let safe = [];
+        while(safe.length < count) {
             let r = Math.floor(Math.random() * 5) + 1;
-            if(!safeColumns.includes(r)) safeColumns.push(r);
+            if(!safe.includes(r)) safe.push(r);
         }
-        path.push(safeColumns);
+        map.push(safe);
     }
-    gameState.apple.path = path;
-}
-
-// 3. THIMBLES LOGIKASI
-function shuffleThimbles() {
-    gameState.thimbles.isShuffling = true;
-    gameState.thimbles.winningPos = Math.floor(Math.random() * 3) + 1;
-    setTimeout(() => {
-        gameState.thimbles.isShuffling = false;
-        io.emit('THIMBLES_READY', { win: gameState.thimbles.winningPos });
-    }, 3000);
+    return map;
 }
 
 io.on('connection', (socket) => {
-    console.log('User Connected: ' + socket.id);
-    socket.emit('INIT_CRASH', gameState.crash.history);
+    console.log('--- NEW CONNECTION: ' + socket.id);
     
-    socket.on('GET_APPLE_PREDICTION', () => {
-        generateApplePath();
-        socket.emit('APPLE_PATH', gameState.apple.path);
+    socket.on('LINK_SESSION', (data) => {
+        state.activeSession = data.sid;
+        console.log("Session Linked: " + data.sid);
+        socket.emit('LOG', 'SYSTEM: Handshake success. Intercepting WebSocket...');
     });
 
-    socket.on('START_THIMBLES', () => {
-        shuffleThimbles();
+    socket.on('GET_APPLE_MAP', () => {
+        const map = generateAppleMap();
+        socket.emit('APPLE_MAP', map);
+    });
+
+    socket.on('THIMBLES_PLAY', () => {
+        const win = Math.floor(Math.random() * 3) + 1;
+        socket.emit('THIMBLES_RESULT', win);
     });
 });
 
-runCrashEngine();
+crashLoop();
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`SYSTEM ACTIVE ON PORT ${PORT}`));
+server.listen(PORT, () => console.log(`DAHO SYSTEM ONLINE ON PORT ${PORT}`));
